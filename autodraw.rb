@@ -50,13 +50,15 @@ t1 = Thread.start do
 			end
 			
 			# Monano用accountにまとめておく(支払い準備)
+			puts "入金用アカウント:"
 			Pack.count.times do |i|
 				paid_account = "#{config["address_prefix"]}#{i+1}"
 				balance = wallet.getbalance paid_account
-				puts "balance ", balance, paid_account
+				puts "paid_account: #{balance}"
 				# 入金されたアドレスから全額移動(balanceが0以下だとerror)
 				wallet.move paid_account, config["wallet_account"], balance if balance > 0
 			end
+			puts "Wallet: #{wallet.getbalance config["wallet_account"]} Mona"
 			
 			# 支払い
 			
@@ -79,7 +81,9 @@ t1 = Thread.start do
 					ticket = Ticket.find rank_winner
 					pack = Pack.find ticket.pack_id
 					# けたを8けたにしておいてから支払い
-					payouts[pack.payout_address] = ("%.8f" % payout).to_f
+					# (演算子を+=にしているのは、同一アドレスから複数パック購入の可能性があるため)
+					payouts[pack.payout_address] ||= 0 # 防止: undefined method `+' for nil:NilClass (NoMethodError) 
+					payouts[pack.payout_address] += ("%.8f" % payout).to_f
 					pack.payouted = ("%.8f" % payout).to_f # DB更新
 					pack.save
 					print "#{rank_winner} "
@@ -88,13 +92,21 @@ t1 = Thread.start do
 				puts ""
 			end
 			
+			require 'pp'
+			pp payouts
+			
 			# まとめて支払い
 			wallet.walletpassphrase config["wallet_passphrase"], 3
-			wallet.sendmany config["wallet_account"], payouts
+			print "transaction: "
+			puts wallet.sendmany config["wallet_account"], payouts
 			
+			payouted_all = payouts.inject do |sum, (address, payout)|
+				sun += payout
+			end
 			puts "---------------------------------------"
-			puts "All paid: #{paid_all} Mona"
-			puts "Wallet: #{wallet.getbalance config["wallet_account"]} Mona"
+			puts "総入金額: #{paid_all} Mona"
+			puts "総支払額: #{payouted_all} Mona"
+			puts "Wallet残金: #{wallet.getbalance config["wallet_account"]} Mona"
 			puts "---------------------------------------"
 			
 			# 最終抽選を更新
@@ -103,6 +115,14 @@ t1 = Thread.start do
 				YAML.dump config, file
 			end
 			
+			# ログをyamlに保存
+			
+			# ticket, packを捨てる
+			Ticket.destroy_all
+			Pack.destroy_all
+			Ticket.save
+			Pack.save
+			
 			break # loopを抜ける
 		end
 		
@@ -110,4 +130,4 @@ t1 = Thread.start do
 	end
 end
 
-#t1.join
+t1.abort_on_exception = true # 例外細く

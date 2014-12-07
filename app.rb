@@ -8,7 +8,7 @@ require './autodraw.rb'
 class Monano < Sinatra::Base
 	
 	config = YAML.load_file "config.yml"
-	@@wallet = MonacoinRPC.new('http://monacoinrpc:EJ6aJgxqFgUMsE2oQPMrzmXHC3BRXfzaLNXJeURiUkSg@127.0.0.1:10010')
+	@@wallet = MonacoinRPC.new "http://#{config["user"]}:#{config["password"]}@#{config["host"]}:#{config["port"]}"
 
 	configure do
 		Sinatra::Application.reset!

@@ -1,6 +1,7 @@
 require 'net/http'
 require 'uri'
 require 'json'
+require 'yaml'
 
 class MonacoinRPC
   def initialize(service_url)
@@ -24,9 +25,4 @@ class MonacoinRPC
   end
 
   class JSONRPCError < RuntimeError; end
-end
-
-if __FILE__ == $0
-  wallet = MonacoinRPC.new('http://monacoinrpc:EJ6aJgxqFgUMsE2oQPMrzmXHC3BRXfzaLNXJeURiUkSg@127.0.0.1:10010')
-  p wallet.getbalance
 end
