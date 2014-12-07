@@ -21,9 +21,9 @@ payout_percentage = config["payout_percentage"] # 残りは手数料として胴
 # 抽選時刻になるまで監視(別スレッドで同時進行)
 t1 = Thread.start do
 	loop do
-		puts Time.now
-		# 現在時刻が抽選時刻を過ぎている && まだ抽選してない
-		if draw_time <= Time.now && last_draw == draw_time # 現在時刻とぴったりとは限らない
+		# 現在時刻が抽選時刻を過ぎている
+		if draw_time <= Time.now # 現在時刻とぴったりとは限らない
+			break if last_draw == draw_time # もう抽選した
 			
 			sold = Ticket.count
 			
@@ -47,6 +47,15 @@ t1 = Thread.start do
 						redo # 生成し直し
 					end
 				end
+			end
+			
+			# Monano用accountにまとめておく(支払い準備)
+			Pack.count.times do |i|
+				paid_account = "#{config["address_prefix"]}#{i+1}"
+				balance = wallet.getbalance paid_account
+				puts "balance ", balance, paid_account
+				# 入金されたアドレスから全額移動(balanceが0以下だとerror)
+				wallet.move paid_account, config["wallet_account"], balance if balance > 0
 			end
 			
 			# 支払い
@@ -101,4 +110,4 @@ t1 = Thread.start do
 	end
 end
 
-t1.join
+#t1.join

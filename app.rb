@@ -1,18 +1,20 @@
 require 'sinatra/base'
 #require 'sinatra/reloader'
 require 'active_record'
+require 'yaml'
 require './monacoinrpc.rb'
 require './autodraw.rb'
 
 class Monano < Sinatra::Base
-
+	
+	config = YAML.load_file "config.yml"
 	@@wallet = MonacoinRPC.new('http://monacoinrpc:EJ6aJgxqFgUMsE2oQPMrzmXHC3BRXfzaLNXJeURiUkSg@127.0.0.1:10010')
 
 	configure do
 		Sinatra::Application.reset!
 		use Rack::Reloader
-		set :site_name, "Monano"
-		set :price, 0.001
+		set :price, config["ticket_price"]
+		set :site_name, config["site_name"]
 	end
 
 	use ActiveRecord::ConnectionAdapters::ConnectionManagement
@@ -26,7 +28,7 @@ class Monano < Sinatra::Base
 	class Ticket < ActiveRecord::Base; end
 
 	get '/' do
-		@title = "#{settings.site_name}へようこそ"
+		@title = "#{config["site_name"]}へようこそ"
 		
 		@packs = Pack.all
 		
@@ -37,14 +39,14 @@ class Monano < Sinatra::Base
 		amount  = params[:amount].to_i
 		address = params[:address]
 		
-		halt "正しいアドレスを指定せよ" unless @@wallet.validateaddress(address)["isvalid"]
+		halt "正しいアドレスを指定してください" unless @@wallet.validateaddress(address)["isvalid"]
 		
 		pack = Pack.create(amount: amount,
 										   nyuukin_address: @@wallet.getnewaddress, # 振込先アドレス
 										   payout_address: address,
 										   paid: 0.0, paid_confirmed: 0.0, payouted: 0)
 		# ラベルを貼っておく
-		@@wallet.setaccount pack.nyuukin_address, pack.id
+		@@wallet.setaccount pack.nyuukin_address, config["address_prefix"] + pack.id.to_s
 		
 		amount.times do
 			Ticket.create pack_id: pack.id
@@ -61,7 +63,7 @@ class Monano < Sinatra::Base
 		@pay_complete = true
 		
 		# 入金確認  
-		if @pack.paid < @pack.amount * settings.price
+		if @pack.paid < @pack.amount * config["ticket_price"]
 			@pay_complete = false
 			@pack.paid           = @@wallet.getreceivedbyaddress @pack.nyuukin_address, 0
 			@pack.paid_confirmed = @@wallet.getreceivedbyaddress @pack.nyuukin_address, 6
@@ -69,6 +71,7 @@ class Monano < Sinatra::Base
 	
 		@pack.save
 		
+		@ticket_price = config["ticket_price"]
 		@title = "パック詳細"
 		erb :pack
 	end
