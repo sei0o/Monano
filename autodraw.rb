@@ -27,6 +27,11 @@ t1 = Thread.start do
 			
 			sold = Ticket.count
 			
+			if sold == 0
+				puts "売れなかったお..."
+				break
+			end
+			
 			# 抽選!
 			winners = []
 			
@@ -34,7 +39,7 @@ t1 = Thread.start do
 				winners[rank] = []
 				wincount.times do # n等の当選者分
 					win_id = rand(sold) + 1 # 乱数で当選チケットIDを決定
-					ticket = Ticket.find win_id
+					ticket = Ticket.find_by id: win_id
 					pack   = Pack.find ticket.pack_id
 					
 					print pack.paid
@@ -54,7 +59,7 @@ t1 = Thread.start do
 			Pack.count.times do |i|
 				paid_account = "#{config["address_prefix"]}#{i+1}"
 				balance = wallet.getbalance paid_account
-				puts "paid_account: #{balance}"
+				puts "#{paid_account}: #{balance}"
 				# 入金されたアドレスから全額移動(balanceが0以下だとerror)
 				wallet.move paid_account, config["wallet_account"], balance if balance > 0
 			end
@@ -93,15 +98,15 @@ t1 = Thread.start do
 			end
 			
 			require 'pp'
-			pp payouts
 			
 			# まとめて支払い
 			wallet.walletpassphrase config["wallet_passphrase"], 3
 			print "transaction: "
 			puts wallet.sendmany config["wallet_account"], payouts
 			
-			payouted_all = payouts.inject do |sum, (address, payout)|
-				sun += payout
+			payouted_all = payouts.inject(0) do |sum, (address, payout)|
+				sum += payout
+				sum
 			end
 			puts "---------------------------------------"
 			puts "総入金額: #{paid_all} Mona"
@@ -115,13 +120,30 @@ t1 = Thread.start do
 				YAML.dump config, file
 			end
 			
-			# ログをyamlに保存
+			# 当選者ログをyamlに保存
+			pp payout_percentage
+			pp winners
+			pp payouts
+			
+			draw_log = {}
+			draw_log["ticket_price"] = config["ticket_price"]
+			draw_log["sold_tickets"] = sold
+			draw_log["paid"] = paid_all
+			draw_log["payouted"] = payouted_all
+			draw_log["payouts"] = payouts
+			# 二重配列をhashに
+			draw_log["winners"] = {}
+			winners.each_with_index do |rank_winners, index|
+				draw_log["winners"][index.to_s] = rank_winners
+			end
+			
+			File.open File.expand_path("./data/draws/#{config["draw_time"]}.yml"), "w" do |file|
+				YAML.dump draw_log, file
+			end
 			
 			# ticket, packを捨てる
 			Ticket.destroy_all
 			Pack.destroy_all
-			Ticket.save
-			Pack.save
 			
 			break # loopを抜ける
 		end
