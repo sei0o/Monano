@@ -1,14 +1,15 @@
 ---
 site_name: Monano
 ticket_price: 0.001
-draw_time: 2014-12-25-19-00-00
+draw_time: 2014-12-7-11-30-11
+last_draw: 2014-12-7-11-30-11
 check_interval: 10
 host: 127.0.0.1
 user: monacoinrpc
-password: password
-port: 1092
-wallet_passphrase: monacoind_passphrase
-wallet_account: account_for_monano
+password: EJ6aJgxqFgUMsE2oQPMrzmXHC3BRXfzaLNXJeURiUkSg
+port: 10010
+wallet_passphrase: Pt5C{@d2x?s1Vx~aVcudf.$\;'h~
+wallet_account: Monano
 address_prefix: Monano_
 winners:
 - 1
