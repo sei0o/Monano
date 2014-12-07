@@ -6,12 +6,12 @@ Sinatra &amp; Monacoinで宝くじの練習
 How to Run
 --------
 1. install gems
-```
+``` bash
 $ gem install sinatra activerecord
 ```
 
 2. clone repo & Run!
-```
+``` bash
 $ git clone https://github.com/sei0o/Monano.git  
 $ cd Monano  
 $ rackup  
@@ -32,7 +32,7 @@ Edit config.yml
 `wallet_account`: Account for Monano.  
 `address_prefix`: prefix for generated address's account.   
 `winners`: list of winners count.  example:  
-```
+``` YAML
 - 1 # 1st rank. 1 winner.
 - 1 # 2nd rank. 1 winner.
 - 3 # 3rd rank. 3 winners.
